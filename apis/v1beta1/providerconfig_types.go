@@ -72,6 +72,9 @@ type AssumeRoleOptions struct {
 	// AssumeRoleARN to assume with provider credentials
 	RoleARN *string `json:"roleARN,omitempty"`
 
+	// AssumeWithWebIdentity indicates whether to directly assume a role using injected OIDC token.
+	AssumeWithWebIdentity bool `json:"assumeWithWebIdentity,omitempty"`
+
 	// ExternalID is the external ID used when assuming role.
 	// +optional
 	ExternalID *string `json:"externalID,omitempty"`

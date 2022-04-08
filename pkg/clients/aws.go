@@ -349,6 +349,15 @@ func UseProviderSecretAssumeRole(ctx context.Context, data []byte, profile, regi
 // assume Cross account IAM roles
 // https://aws.amazon.com/blogs/containers/cross-account-iam-roles-for-kubernetes-service-accounts/
 func UsePodServiceAccountAssumeRole(ctx context.Context, _ []byte, _, region string, pc *v1beta1.ProviderConfig) (*aws.Config, error) {
+	if pc.Spec.AssumeRole.AssumeWithWebIdentity && pc.Spec.AssumeRole.RoleARN != nil {
+		stsClient := sts.NewFromConfig(aws.Config{
+			Region: region,
+		})
+		return &aws.Config{
+			Region:      region,
+			Credentials: stscreds.NewWebIdentityRoleProvider(stsClient, "arn:aws:iam::833162080385:role/crossplane-provider-aws", stscreds.IdentityTokenFile("/tmp/token")),
+		}, nil
+	}
 	cfg, err := config.LoadDefaultConfig(ctx, userAgentV2)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load default AWS config")

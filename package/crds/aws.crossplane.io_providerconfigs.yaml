@@ -51,6 +51,10 @@ spec:
               assumeRole:
                 description: AssumeRole defines the options for assuming an IAM role
                 properties:
+                  assumeWithWebIdentity:
+                    description: AssumeWithWebIdentity indicates whether to directly
+                      assume a role using injected OIDC token.
+                    type: boolean
                   externalID:
                     description: ExternalID is the external ID used when assuming
                       role.

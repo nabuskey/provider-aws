@@ -905,6 +905,10 @@ func TestUseProviderConfigResolveEndpoint(t *testing.T) {
 	}
 }
 
+func TestUsePodServiceAccountAssumeRole(t *testing.T) {
+
+}
+
 func TestDiffTagsMapPtr(t *testing.T) {
 	type args struct {
 		cr  map[string]*string
