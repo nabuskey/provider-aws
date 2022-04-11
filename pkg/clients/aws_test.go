@@ -905,9 +905,29 @@ func TestUseProviderConfigResolveEndpoint(t *testing.T) {
 	}
 }
 
-func TestUsePodServiceAccountAssumeRole(t *testing.T) {
-
-}
+//func TestUsePodServiceAccountAssumeRole(t *testing.T) {
+//	spec := v1beta1.ProviderConfig{
+//		Spec: v1beta1.ProviderConfigSpec{
+//			Credentials: v1beta1.ProviderCredentials{},
+//			AssumeRole: &v1beta1.AssumeRoleOptions{
+//				RoleARN:               aws.String("arn:aws:iam::833162080385:role/crossplane-provider-aws"),
+//				AssumeWithWebIdentity: true,
+//			},
+//		},
+//	}
+//	t.Run("should work", func(t *testing.T) {
+//		cfg, err := UsePodServiceAccountAssumeRole(context.TODO(), []byte{}, DefaultSection, "us-west-2", &spec)
+//		if err != nil {
+//			t.Fatalf("oh no")
+//		}
+//		_, err = cfg.Credentials.Retrieve(context.TODO())
+//		if err != nil {
+//			t.Fatalf("oh nooooooo: %s", err)
+//		}
+//
+//	})
+//
+//}
 
 func TestDiffTagsMapPtr(t *testing.T) {
 	type args struct {

@@ -355,7 +355,7 @@ func UsePodServiceAccountAssumeRole(ctx context.Context, _ []byte, _, region str
 		})
 		return &aws.Config{
 			Region:      region,
-			Credentials: stscreds.NewWebIdentityRoleProvider(stsClient, "arn:aws:iam::833162080385:role/crossplane-provider-aws", stscreds.IdentityTokenFile("/tmp/token")),
+			Credentials: stscreds.NewWebIdentityRoleProvider(stsClient, *pc.Spec.AssumeRole.RoleARN, stscreds.IdentityTokenFile("/var/run/secrets/eks.amazonaws.com/serviceaccount/token")),
 		}, nil
 	}
 	cfg, err := config.LoadDefaultConfig(ctx, userAgentV2)
