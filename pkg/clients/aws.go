@@ -32,6 +32,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	stscredstypesv2 "github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/aws/aws-sdk-go/aws/arn"
 
 	ec2type "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -65,6 +66,10 @@ const DefaultSection = "DEFAULT"
 // GlobalRegion is the region name used for AWS services that do not have a notion
 // of region.
 const GlobalRegion = "aws-global"
+
+// ChinaSTSRegion is the region which should be used for AWS services in China that do not have a notion
+// of region.
+const ChinaSTSRegion = "cn-north-1"
 
 // Endpoint URL configuration types.
 const (
@@ -282,6 +287,29 @@ func UseProviderSecretAssumeRole(ctx context.Context, data []byte, profile, regi
 	creds, err := CredentialsIDSecret(data, profile)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot parse credentials secret")
+	}
+
+	if region == GlobalRegion {
+		var arnString string
+		if pc.Spec.AssumeRole != nil && pc.Spec.AssumeRole.RoleARN != nil {
+			arnString = *pc.Spec.AssumeRole.RoleARN
+		} else {
+			arnString = *pc.Spec.AssumeRoleARN
+		}
+		a, err := arn.Parse(arnString)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid arn specified in providerConfig")
+		}
+		switch a.Partition {
+		case "aws":
+			region = GlobalRegion
+		case "aws-cn":
+			region = ChinaSTSRegion
+		case "aws-us-gov":
+			region = GlobalRegion
+		default:
+			return nil, errors.New(fmt.Sprintf("%s is not a valid aws partition", a.Partition))
+		}
 	}
 
 	config, err := config.LoadDefaultConfig(
