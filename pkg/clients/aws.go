@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -66,6 +67,10 @@ const DefaultSection = "DEFAULT"
 // GlobalRegion is the region name used for AWS services that do not have a notion
 // of region.
 const GlobalRegion = "aws-global"
+
+// ChinaGlobalRegion is the region which should be used for AWS services in China that do not have a notion
+// of region.
+const ChinaGlobalRegion = "cn-north-1"
 
 // Endpoint URL configuration types.
 const (
@@ -351,14 +356,22 @@ func UsePodServiceAccountAssumeRole(ctx context.Context, _ []byte, _, region str
 // configured via a ServiceAccount assume Cross account IAM roles
 // https://aws.amazon.com/blogs/containers/cross-account-iam-roles-for-kubernetes-service-accounts/
 func UsePodServiceAccountAssumeRoleWithWebIdentity(ctx context.Context, _ []byte, _, region string, pc *v1beta1.ProviderConfig) (*aws.Config, error) {
-	cfg, err := config.LoadDefaultConfig(ctx, userAgentV2)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load default AWS config")
-	}
-
 	roleArn, err := GetAssumeRoleWithWebIdentityARN(pc.Spec.DeepCopy())
 	if err != nil {
 		return nil, err
+	}
+
+	r := region
+	if region == GlobalRegion {
+		r, err = getRegionForGlobalResource(StringValue(roleArn))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cfg, err := config.LoadDefaultConfig(ctx, userAgentV2, config.WithRegion(r))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load default AWS config")
 	}
 
 	stsclient := sts.NewFromConfig(cfg)
@@ -367,7 +380,7 @@ func UsePodServiceAccountAssumeRoleWithWebIdentity(ctx context.Context, _ []byte
 	cnf, err := config.LoadDefaultConfig(
 		ctx,
 		userAgentV2,
-		config.WithRegion(region),
+		config.WithRegion(r),
 		config.WithCredentialsProvider(aws.NewCredentialsCache(
 			stscreds.NewWebIdentityRoleProvider(
 				stsclient,
@@ -1275,4 +1288,22 @@ func CIDRBlocksEqual(cidr1, cidr2 string) bool {
 	}
 
 	return ip2.String() == ip1.String() && ipnet2.String() == ipnet1.String()
+}
+
+// Requests for global resources must be sent to the correct region for a partition.
+func getRegionForGlobalResource(ARN string) (string, error) {
+	a, err := arn.Parse(ARN)
+	if err != nil {
+		return "", errors.Wrap(err, "invalid arn specified in providerConfig")
+	}
+	switch a.Partition {
+	case "aws":
+		return GlobalRegion, nil
+	case "aws-cn":
+		return ChinaGlobalRegion, nil
+	case "aws-us-gov":
+		return GlobalRegion, nil
+	default:
+		return "", errors.New(fmt.Sprintf("%s is not a valid aws partition", a.Partition))
+	}
 }
